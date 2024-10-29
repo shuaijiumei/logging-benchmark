@@ -1,0 +1,12 @@
+node_modules
+data
+processData/fastlog/
+processData/*.json
+compareTheDiff/*.json
+afterTest/*.json
+temp_code/
+aborted/
+*.log
+*.tsv
+.DS_Store
+*.zip
