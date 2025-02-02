@@ -6,7 +6,7 @@ AL-Bench is a comprehensive automatic logging benchmark framework designed to ev
 
 ## Overview
 
-![AL-Bench Overview](./img/evaluation_based_on_execution.pdf)
+![AL-Bench Overview](./img/evaluation_based_on_execution.png)
 
 *Figure 1: Overview of AL-Bench framework and evaluation process*
 
