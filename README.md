@@ -2,13 +2,7 @@
 
 [English](README.md) | [中文](README_CN.md)
 
-AL-Bench is a comprehensive automatic logging benchmark framework designed to evaluate and compare different automatic log generation tools. This framework consists of two main components: static evaluation and dynamic evaluation.
-
-## Overview
-
-![AL-Bench Overview](./img/evaluation_based_on_execution.png)
-
-*Figure 1: Overview of AL-Bench framework and evaluation process*
+AL-Bench includes a high-quality dataset and a novel dynamic evaluation method focused on runtime logs, addressing key limitations of prior studies and bridging the gap between real-world requirements and existing evaluation frameworks.
 
 ## Project Structure
 
@@ -22,20 +16,23 @@ AL-Bench is a comprehensive automatic logging benchmark framework designed to ev
     └── init_dynamic_evaluation/  # Dataset construction scripts
 ```
 
+## Dataset
+![Dataset Overview](./img/dataset_overview.png)
+
+The complete evaluation dataset can be accessed at: https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps
+
 ## Evaluation Methods
 
 ### Static Evaluation
 
 Static evaluation focuses on the following aspects:
-1. Log Level Accuracy
-2. Log Position Accuracy
-3. Log Message Accuracy
-4. Comprehensive Evaluation Metrics:
-   - ROUGE Score
-   - BLEU Score
-   - Cosine Similarity
+1. Log Level Accuracy (LA)
+2. Log Position Accuracy (PA)
+3. Log Message Accuracy (MA)
+4. Dynamic Variable Accuracy (DVA)
+5. Static Text BLEU Score (STB)
 
-![Static Evaluation Process](assets/static_evaluation.png)
+![Static Evaluation Process](./img/static_evaluation.png)
 
 *Figure 2: Static evaluation process and metrics calculation*
 
@@ -43,13 +40,11 @@ Static evaluation focuses on the following aspects:
 
 Dynamic evaluation is based on Hadoop 3.4.0 unit tests, assessing the performance of logging tools in actual runtime environments:
 1. Compilation Success Rate
-2. Runtime Behavior
-3. Log Output Quality
-4. Performance Impact
+2. Log Similarity
 
-![Dynamic Evaluation Process](assets/dynamic_evaluation.png)
+![Dynamic Evaluation Process](./img/evaluation_based_on_execution.png)
 
-*Figure 3: Dynamic evaluation workflow with Hadoop test suite*
+*Figure 3: Dynamic evaluation results with Hadoop test suite*
 
 ## Quick Start
 
@@ -91,7 +86,7 @@ cd Dynamic_Evaluation
 The complete evaluation dataset can be accessed at:
 https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps
 
-## Supported Logging Tools
+## Evaluated Logging Tools
 
 - FastLog
 - UniLog
