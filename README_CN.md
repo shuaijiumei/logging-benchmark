@@ -107,7 +107,18 @@ https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps
 
 ## 引用
 
-如果您在研究中使用了 AL-Bench，请引用我们的论文：[论文引用信息待补充]
+如果您在研究中使用了 AL-Bench，请引用我们的论文：
+```markdown
+    @misc{tan2025albenchbenchmarkautomaticlogging,
+        title={AL-Bench: A Benchmark for Automatic Logging}, 
+        author={Boyin Tan and Junjielong Xu and Zhouruixing Zhu and Pinjia He},
+        year={2025},
+        eprint={2502.03160},
+        archivePrefix={arXiv},
+        primaryClass={cs.SE},
+        url={https://arxiv.org/abs/2502.03160}, 
+    }
+```
 
 ## 许可证
 
