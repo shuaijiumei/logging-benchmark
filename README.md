@@ -1,6 +1,7 @@
 # AL-Bench: Automatic Logging Benchmark
 
 [English](README.md) | [中文](README_CN.md)
+## Overview
 
 AL-Bench includes a high-quality dataset and a novel dynamic evaluation method focused on runtime logs, addressing key limitations of prior studies and bridging the gap between real-world requirements and existing evaluation frameworks.
 
@@ -45,6 +46,16 @@ Dynamic evaluation is based on Hadoop 3.4.0 unit tests, assessing the performanc
 ![Dynamic Evaluation Process](./img/evaluation_based_on_execution.png)
 
 *Figure 3: Dynamic evaluation results with Hadoop test suite*
+
+## Evaluation Results
+
+### Static Evaluation
+![Static Evaluation Results](./img/static_evaluation_results.png)
+
+
+### Dynamic Evaluation
+![Dynamic Evaluation Results](./img/dynamic_evaluation_results.png)
+
 
 ## Quick Start
 

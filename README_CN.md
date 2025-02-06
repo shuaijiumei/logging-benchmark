@@ -2,7 +2,9 @@
 
 [English](README.md) | [中文](README_CN.md)
 
-AL-Bench 包含高质量的数据集和新颖的动态评估方法，专注于运行时日志，解决了先前研究的关键局限性，并弥合了实际需求与现有评估框架之间的差距。
+## 概述
+
+AL-Bench 提供高质量的数据集和创新的动态评估方法，专注于运行时日志，解决了先前研究的关键局限性，并弥合了实际需求与现有评估框架之间的差距。
 
 ## 项目结构
 
@@ -46,6 +48,14 @@ https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps
 ![动态评估流程](./img/evaluation_based_on_execution.png)
 
 *图 3: 基于 Hadoop 测试套件的动态评估结果*
+
+## 评估结果
+
+### 静态评估
+![静态评估结果](./img/static_evaluation_results.png)
+
+### 动态评估
+![动态评估结果](./img/dynamic_evaluation_results.png)
 
 ## 快速开始
 
