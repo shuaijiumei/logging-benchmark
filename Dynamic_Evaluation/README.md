@@ -1,23 +1,49 @@
-# Logging Benchmark
-This repo includes the scripts for dynamic evaluation.
+# Dynamic Evaluation
+Dynamic evaluation focuses on compiling the code and runtime-generated logs, addressing static evaluation’s inability to verify code compilability and runtime logs. To directly assess runtime logs, we generate them using unit tests, which are widely used in software development to verify code functionality in isolated scenarios. 
 
-## Repo Description
-+ In `dynamic_evaluation` repo, we put the results of dynamic evaluation and the scripts for analyzing the results.
-  + In repo `data`, we provide a demo JSON file for dynamic eavaluation. It is very time consuming for evaluating the complete predictions results of any automatic logging tools, we provide a demo data for run the whole process of dynamic evaluation. The details could be seen following.
-  + In repo `res`, we provide the analysis of dynamic evaluation's results. Scripts for evaluate the similarity between logs are put here, and you need to download the data of analysis results and logs produced from One Drive.
-  + In repo `rq2`, we put the randomly selected examples for analyzing the compilation failure.
-  + In repo `tool`, we provide some additional scirpts of dynamic evaluation.
-+ In `init_dynamic_evaluation`, we provide necessary scripts for reproducing our process for building datasets. To reproduce our process of building datasets, you need compile the Hadoop 3.4.0 source code and use the scirpt to add dependencies of Jacoco. We release the dockerfile used for building the enviroment put in `dockek/` repo. Then you could use the `autoTest.js` script to run each unit test to get the covered functions with log statements.
-
-## Conduct Dynamic Evaluation
+## Quick Start
 ### Step 1
-First, you need to download the source code of Hadoop 3.4.0 and compile the Hadoop according to the guidelines.
+You need to prepare the [Hadoop 3.4.0 source code](https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps) and use the dockerfile in `docker/` repo to build the enviroment. Replace the dockerfile provided by Hadoop with the one in `docker/Dockerfile_aarch64`.
 
 ### Step 2
-Second, following the demo in `./dynamic_evaluation/data/demo`, you need to put the data with predicted log statements in `test` repo. The data should follow the `demo.json` striucture. In this data, you need to modify the `function_position` to your real location on your computer so that the scirpt in `./dynamic_evaluation` could successfully replace the source code. And you need also modify the path in `./dynamic_evaluation.js`, we leave `[PATH IN DOCKER]` to highlight the path.
+Run command `mvn clean install -DskipTests` to prepare the source code for dynamic evaluation.
 
 ### Step 3
-Third, modify the scirpts in `./start-test.sh` according to data you want to test, and in docker enviroment, run the `./start-test.sh`.
+Run command `./start-test.sh` to run the unit test and generate the logs. Before running this script, you need to modify the `dynamic_evaluation.js` script to replace the `[PATH IN DOCKER]` path of source code with your real path. If you want to test the prediction results of your automatic logging tool, you need to put the prediction results in `./data/demo/test` repo and run the script. 
+
+### Step 4
+Run the script `./dynamic_evaluation/res/script/Similarity/calculateSimilarity.py` to calculate the similarity between the predicted logs and the actual logs. Run the script `./dynamic_evaluation/res/script/getMetrics.js` to get the metrics of the predicted logs.
+
+
+The `data/demo` repo contains:
+
+```markdown
+data/demo/
+├── test/
+│   └── demo.json           # Prediction results file
+│       ├── function_content  # Content of function to modify
+│       ├── function_position  # File path of function to modify
+│       ├── function_lines     # Line range of function (e.g. "10-20") 
+│       ├── function_without_covered_logs     # function without covered logs
+│       ├── uuidMap    # necessary information for mapping uuid to function_position
+│       ├── prediction         # Predicted log statement
+│       └── uuid              # Unique identifier for prediction
+│
+├── result/
+│   └── demo.json           # Prediction results file
+│
+├── replaceLogs/           # Directory for replacement logs
+│   ├── <uuid>.json       # Records original and replaced content
+│   └── <uuid>.bak        # Indicates reversed replacements
+│
+├── output/             # Directory for unit test output logs
+│   └── <hadoop_project_name>_<Unit Test Name>_<uuid>.txt       # Unit test output logs
+│
+└── logs/             # Directory for test execution logs
+    └── *.log            # Runtime logs for comparing predictions vs actual output
+
+  
+```
 
 ## Results
 The data when we build the dataset are all packaged and the generated logs are all packaged. We put all data on the One Drive: https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps

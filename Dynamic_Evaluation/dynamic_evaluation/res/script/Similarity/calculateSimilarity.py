@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
+# 读取 json 文件
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import json
 from tqdm import tqdm
-from transformers import logging
+from bert_score import score
+from transformers import BertTokenizer, logging
 from sacrebleu import sentence_bleu
+import Levenshtein
 from rouge_score import rouge_scorer
 import tqdm
 import warnings
@@ -13,7 +16,9 @@ warnings.filterwarnings("ignore")
 
 logging.set_verbosity_error()
 
-evaluate_model_name = 'leonid_m'
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+evaluate_model_name = 'unilog_deepseek'
 dynamic_test_platform = 'hadoop'
 
 
@@ -27,6 +32,11 @@ prediction_data = read_json(
     f'../../{dynamic_test_platform}/{evaluate_model_name}.json')
 prediction_common_data = read_json(
     f'../data/{evaluate_model_name}/common.json')
+
+
+def calculate_levenshtein_distance(text1, text2):
+    distance = Levenshtein.distance(text1, text2)
+    return distance
 
 
 def calculate_rouge_score(reference, candidate):
@@ -60,6 +70,7 @@ def calculate_cosine_similarity(text1, text2):
 
 
 def calculate_bleu_score(tokens_real, tokens_pred, bleu_score_record):
+    # 计算 BLEU 分数，不使用平滑方法
     bleu = sentence_bleu(tokens_real, [tokens_pred], smooth_method='none')
 
     bleu_score_record['total_bleu_score'] += bleu.score
@@ -79,15 +90,33 @@ def calculate_bleu_score(tokens_real, tokens_pred, bleu_score_record):
 
 def read_txt(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
+        # 读取文件内容，划分为数组
         res = []
         content = f.read().split('\n')
         for item in content:
             res.append(item.split('[SUPER TAG]').pop())
+        # 将数组转换为字符串返回
         return ''.join(res)
 
 
+def split_text_into_chunks(text, tokenizer, max_length=512):
+    # 判断 text 是否大于 512 tokens ,如果大于则按照 512 tokens 进行切割
+    tokens = tokenizer.tokenize(text)
+    chunks = []
+    for i in range(0, len(tokens), max_length):
+        chunk = tokens[i:i + max_length]
+        chunks.append(tokenizer.convert_tokens_to_string(chunk))
+    return chunks
+
+def give_full_score(item):
+    item['bert_score'] = 1
+
+
+# 根据 prediction_common_data 读取到 predictionFile 的地址
+
+
 def get_true_prediction_file(item):
-    return read_txt(item['uuidMap']['projects'][0]['unitTest'][0]['predictOutput'].replace('the path in data', 'the truth path in your computer'))
+    return read_txt(item['uuidMap']['projects'][0]['unitTest'][0]['predictOutput'].replace('/home/tby/hadoop/', '/Users/tby/Downloads/hadoop_test_platform/'))
 
 
 def r(x):
@@ -116,7 +145,7 @@ def main():
             continue
 
         uuid = d['uuid']
-
+        # 在 baseline_data 中找到 uuid 相同的数据
         baseline_item = [
             item for item in baseline_data if item['uuid'] == uuid].pop()
         prediction_item = [
@@ -125,8 +154,10 @@ def main():
         baseline_item_text = get_true_prediction_file(baseline_item)
         prediction_item_text = get_true_prediction_file(prediction_item)
 
+        # 计算 bleu_score
         d['bleu_score'] = calculate_bleu_score(
             baseline_item_text, prediction_item_text, bleu_score_record)
+        # 计算 rouge_score
         d['rouge_score'] = calculate_rouge_score(
             baseline_item_text, prediction_item_text)
         d['cosine_similarity'] = calculate_cosine_similarity(
@@ -136,12 +167,24 @@ def main():
         print(
             f'uuid: {uuid} bleu_score: {d["bleu_score"]} rouge_score: {d["rouge_score"]} cosine_similarity: {d["cosine_similarity"]}')
 
+    # # 持久化存储结果
     with open(f'../data/{evaluate_model_name}/common_evaluation.json', 'w', encoding='utf-8') as f:
         json.dump(common_evaluate_list, f, ensure_ascii=False, indent=2)
     with open(f'../data/{evaluate_model_name}/too_large_list.json', 'w', encoding='utf-8') as f:
         json.dump(too_large_list, f, ensure_ascii=False, indent=2)
     with open(f'../data/{evaluate_model_name}/perfect_list.json', 'w', encoding='utf-8') as f:
         json.dump(perfect_list, f, ensure_ascii=False, indent=2)
+
+    print('bleu_score_A: ',
+          bleu_score_record['total_bleu_score'] / len(common_evaluate_list) )
+    print('bleu_score_1: ',
+          bleu_score_record['total_bleu1_score'] / len(common_evaluate_list) )
+    print('bleu_score_2: ',
+          bleu_score_record['total_bleu2_score'] / len(common_evaluate_list))
+    print('bleu_score_3: ',
+          bleu_score_record['total_bleu3_score'] / len(common_evaluate_list))
+    print('bleu_score_4: ',
+          bleu_score_record['total_bleu4_score'] / len(common_evaluate_list))
 
 
 if __name__ == '__main__':
