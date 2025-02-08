@@ -102,8 +102,7 @@ https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps
 - FastLog
 - UniLog
 - LANCE
-- Leonid
-- Leonid_M
+- LEONID
 
 ## 引用
 
