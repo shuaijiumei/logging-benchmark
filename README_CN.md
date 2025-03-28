@@ -32,8 +32,9 @@ https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps
 1. 日志级别准确性 (LA)
 2. 日志位置准确性 (PA)
 3. 日志消息准确性 (MA)
-4. 动态变量准确性 (DVA)
-5. 静态文本 BLEU 分数 (STB)
+4. 平均级别距离 (ALD)
+5. 动态表达式准确性 (DEA)
+6. 静态文本 BLEU 分数 (STB)
 
 ![静态评估流程](./img/static_evaluation.png)
 
@@ -41,13 +42,13 @@ https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps
 
 ### 动态评估
 
-动态评估基于 Hadoop 3.4.0 的单元测试，评估日志工具在实际运行环境中的表现：
+动态评估评估日志工具在实际运行环境中的表现：
 1. 编译成功率
 2. 日志相似度
 
 ![动态评估流程](./img/evaluation_based_on_execution.png)
 
-*图 3: 基于 Hadoop 测试套件的动态评估结果*
+*图 3: 动态评估流程*
 
 ## 评估结果
 
