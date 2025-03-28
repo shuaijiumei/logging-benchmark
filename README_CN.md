@@ -34,7 +34,7 @@ https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps
 3. 日志消息准确性 (MA)
 4. 平均级别距离 (ALD)
 5. 动态表达式准确性 (DEA)
-6. 静态文本 BLEU 分数 (STB)
+6. 静态文本 BLEU ROUGE 分数 (STS)
 
 ![静态评估流程](./img/static_evaluation.png)
 

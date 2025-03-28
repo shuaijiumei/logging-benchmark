@@ -32,7 +32,7 @@ Static evaluation focuses on the following aspects:
 3. Log Message Accuracy (MA)
 4. Average Level Distance (ALD)
 5. Dynamic Expression Accuracy (DEA)
-6. Static Text BLEU Score (STB)
+6. Static Text BLEU ROUGE Score (STS)
 
 ![Static Evaluation Process](./img/static_evaluation.png)
 
