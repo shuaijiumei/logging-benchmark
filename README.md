@@ -30,8 +30,9 @@ Static evaluation focuses on the following aspects:
 1. Log Level Accuracy (LA)
 2. Log Position Accuracy (PA)
 3. Log Message Accuracy (MA)
-4. Dynamic Variable Accuracy (DVA)
-5. Static Text BLEU Score (STB)
+4. Average Level Distance (ALD)
+5. Dynamic Expression Accuracy (DEA)
+6. Static Text BLEU Score (STB)
 
 ![Static Evaluation Process](./img/static_evaluation.png)
 
@@ -39,13 +40,13 @@ Static evaluation focuses on the following aspects:
 
 ### Dynamic Evaluation
 
-Dynamic evaluation is based on Hadoop 3.4.0 unit tests, assessing the performance of logging tools in actual runtime environments:
+Dynamic evaluation assesses the performance of logging tools in actual runtime environments:
 1. Compilation Success Rate
 2. Log Similarity
 
 ![Dynamic Evaluation Process](./img/evaluation_based_on_execution.png)
 
-*Figure 3: Dynamic evaluation results with Hadoop test suite*
+*Figure 3: Dynamic evaluation process*
 
 ## Evaluation Results
 
