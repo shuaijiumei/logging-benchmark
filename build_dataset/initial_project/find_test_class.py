@@ -52,16 +52,15 @@ def find_available_test_classes(directory: str) -> List[str]:
 
     return search(directory, [])
 
-
-def count_test_files(directory: str) -> int:
+def count_test_files(directory: str) -> Tuple[int, List[str]]:
     """
-    递归统计目录中包含@Test注解的Java文件数量
+    递归统计目录中包含@Test注解的Java文件数量并返回文件列表
 
     Args:
         directory: 要搜索的目录
 
     Returns:
-        包含@Test注解的Java文件数量
+        包含@Test注解的Java文件数量和文件路径列表
     """
     def has_test_annotation(file_path: str) -> bool:
         """检查文件是否包含@Test注解"""
@@ -69,36 +68,38 @@ def count_test_files(directory: str) -> int:
             return False
 
         try:
-            with open(file_path, "utf-8") as f:
+            with open(file_path, encoding='utf-8') as f:
                 return "@Test" in f.read()
-        except Exception:
+        except Exception as e:
+            # 处理文件编码错误或其他异常
+            print(f"Error reading {file_path}: {e}")
             return False
 
-    def search_files(dir_path: str) -> int:
-        """递归搜索并计数测试文件"""
+    def search_files(dir_path: str) -> Tuple[int, List[str]]:
+        """递归搜索并返回测试文件数量和文件列表"""
         try:
             files = os.listdir(dir_path)
+            test_files = []
 
-            # 当前目录中的测试文件数量
-            file_count = sum(
-                1 for file in files
-                if os.path.isfile(os.path.join(dir_path, file)) and
-                has_test_annotation(os.path.join(dir_path, file))
-            )
+
+            # 当前目录中的测试文件
+            for file in files:
+                file_path = os.path.join(dir_path, file)
+                if os.path.isfile(file_path) and has_test_annotation(file_path):
+                    test_files.append(file_path.split("/")[-1].replace(".java", ""))
 
             # 递归搜索子目录中的测试文件
-            subdir_count = sum(
-                search_files(os.path.join(dir_path, subdir))
-                for subdir in files
-                if os.path.isdir(os.path.join(dir_path, subdir))
-            )
+            for subdir in files:
+                subdir_path = os.path.join(dir_path, subdir)
+                if os.path.isdir(subdir_path):
+                    subdir_count, subdir_files = search_files(subdir_path)
+                    test_files.extend(map(lambda x: x.split('/')[-1].replace('.java', ''), subdir_files))
 
-            return file_count + subdir_count
+            return len(test_files), test_files
         except (PermissionError, FileNotFoundError):
-            return 0
+            return 0, []
 
     return search_files(directory)
-
 
 def analyze_projects(project_dirs: List[str], base_dir: str) -> List[Dict[str, Any]]:
     """
@@ -114,12 +115,16 @@ def analyze_projects(project_dirs: List[str], base_dir: str) -> List[Dict[str, A
     def analyze_project(project_dir: str) -> Dict[str, Any]:
         """分析单个项目"""
         test_dir = os.path.join(project_dir, "src", "test")
-        test_count = count_test_files(test_dir)
+        test_count, test_list = count_test_files(test_dir)
 
-        return {
-            "project": project_dir.replace(base_dir, "").lstrip('/'),
-            "testNum": test_count
-        } if test_count > 0 else None
+        if test_count > 0:
+            # 直接使用最终格式
+            return {
+                "project_dir": project_dir.replace(base_dir, "").lstrip('/'),
+                "test_num": test_count,
+                "test_list": test_list,
+            }
+        return None
 
     # 过滤掉没有测试的项目
     return list(filter(
@@ -127,41 +132,12 @@ def analyze_projects(project_dirs: List[str], base_dir: str) -> List[Dict[str, A
         map(analyze_project, project_dirs)
     ))
 
-
-def group_projects(projects: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
-    """
-    将项目按照路径前缀分组
-
-    Args:
-        projects: 项目信息列表
-
-    Returns:
-        按路径前缀分组的项目信息字典
-    """
-    def reducer(acc: Dict[str, List[Dict[str, Any]]], item: Dict[str, Any]) -> Dict[str, List[Dict[str, Any]]]:
-        """归约函数，将项目添加到对应的分组中"""
-        path_parts = item["project"].split("/")
-        key = "/".join(path_parts[:-1])
-
-        if key not in acc:
-            acc[key] = []
-
-        acc[key].append({
-            **item,
-            "project": path_parts[-1]
-        })
-
-        return acc
-
-    return reduce(reducer, projects, {})
-
-
-def save_results(grouped_projects: Dict[str, List[Dict[str, Any]]], output_path: str = None) -> str:
+def save_results(projects: List[Dict[str, Any]], output_path: str = None) -> str:
     """
     保存分析结果到JSON文件
 
     Args:
-        grouped_projects: 按路径前缀分组的项目信息
+        projects: 项目信息列表
         output_path: 结果文件的保存路径
 
     Returns:
@@ -169,13 +145,13 @@ def save_results(grouped_projects: Dict[str, List[Dict[str, Any]]], output_path:
     """
     if output_path is None:
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        output_path = os.path.join(current_dir, "potentialDir.json")
+        output_path = os.path.join(current_dir, "potential_dir.json")
 
     # 确保输出目录存在
     if not os.path.exists(os.path.dirname(output_path)):
         os.makedirs(os.path.dirname(output_path))
     with open(output_path, "w") as f:
-        json.dump(grouped_projects, f, indent=2)
+        json.dump(projects, f, indent=2)
 
     return output_path
 
@@ -187,7 +163,7 @@ def main():
     parser = argparse.ArgumentParser(description='查找和分析Java测试项目')
     parser.add_argument('--base-dir', type=str, default="/Users/tby/Downloads/hadoop_test_platform/",
                 help='要搜索的基础目录路径')
-    parser.add_argument('--output-path', type=str, default='./data/potentialDir.json',
+    parser.add_argument('--output-path', type=str, default='./data/potential_dir.json',
                 help='结果文件的保存路径')
     
     # 解析命令行参数
@@ -204,11 +180,17 @@ def main():
     projects = analyze_projects(project_dirs, base_dir)
     print(f"找到 {len(projects)} 个包含测试的项目")
 
-    print("对项目进行分组...")
-    grouped_projects = group_projects(projects)
+    # 一共多少个项目
+    total_projects = len(projects)
+    print(f"总共有 {total_projects} 个项目")
 
+    # 展示一共有多少个测试文件
+    total_test_files = sum(project["test_num"] for project in projects)
+    print(f"总共有 {total_test_files} 个测试文件")
+
+    # 不再需要分组步骤
     print("保存结果...")
-    output_path = save_results(grouped_projects, output_path)
+    output_path = save_results(projects, output_path)
     print(f"结果已保存到: {output_path}")
     print("完成！")
 

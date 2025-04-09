@@ -89,4 +89,4 @@ dmypy.json
 *.log
 
 # large data
-/data/
+data/
