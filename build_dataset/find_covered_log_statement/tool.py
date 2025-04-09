@@ -1,9 +1,9 @@
 # 配置日志记录
 import logging
 import os
-import subprocess
 from datetime import datetime
 from typing import List, Dict, Any
+import re
 
 def setup_logging(log_dir: str) -> logging.Logger:
     """设置日志记录配置"""
@@ -36,3 +36,58 @@ def setup_logging(log_dir: str) -> logging.Logger:
     logger.addHandler(console_handler)
     
     return logger
+
+def remove_java_comments(code: str) -> str:
+    """
+    Remove all Java comments from code
+    
+    Args:
+        code: Java source code as a string
+    
+    Returns:
+        The code with all comments removed
+    """
+    # Remove all single-line comments //
+    code = re.sub(r'//.*?$', '', code, flags=re.MULTILINE)
+    # Remove all multi-line comments /* */
+    code = re.sub(r'/\*[\s\S]*?\*/', '', code)
+    # Remove leading newline if exists
+    if code.startswith("\n"):
+        code = code[1:]
+    return code
+
+def replace_log_statements(source_code: str, covered_logs: list, replace_target: str = "empty") -> str:
+    """
+    从源代码中移除或标记指定的日志语句
+    
+    Args:
+        source_code: 源代码字符串
+        covered_logs: 要处理的日志信息列表
+        replace_target: 处理方式，只能是 "empty"(移除) 或 "label"(标记)，默认为"empty"
+        
+    Returns:
+        处理后的源代码字符串
+    """
+    # 验证 replace_target 参数
+    if replace_target not in ["empty", "label"]:
+        raise ValueError("replace_target must be either 'empty' or 'label'")
+    
+    result = source_code
+    
+    # 处理日志语句
+    for log in covered_logs:
+        if "statement" in log:
+            if replace_target == "empty":
+                result = result.replace(log["statement"] + ";\n", "")
+            elif replace_target == "label":
+                labeled_statement = label_data(log["statement"])
+                result = result.replace(log["statement"], labeled_statement)
+    
+    # 清理多余的空行
+    result = result.replace("\n\n", "\n")
+    
+    return result
+
+def label_data(log_state: str) -> str:
+    """标记数据"""
+    return log_state.split('(')[0] + '(\"[SUPER TAG]\" + ' + '('.join(log_state.split('(')[1:])
