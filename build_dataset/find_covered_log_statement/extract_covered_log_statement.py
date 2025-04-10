@@ -209,6 +209,7 @@ def process_covered_data(functions_with_covered_logs: List[Dict[str, Any]], dock
             'execute_dir': docker_path + execute_dir + '/',
             'function_content_without_covered_logs': item['function_content_without_covered_logs'],
             'function_with_labeled_data': item['function_with_labeled_data'],
+            'uuid': str(uuid.uuid4())
         })
 
     return result_data
@@ -281,8 +282,23 @@ def main():
     # 递归搜索所有 jacoco.xml 文件
     xml_files = []
     for root_dir, dirs, files in os.walk(data_dir):
+      # 只处理包含 "jacoco" 的文件夹
+      if "jacoco" not in root_dir:
+          continue
+          
+      # 检查是否存在兄弟文件夹 surefire-reports
+      parent_dir = os.path.dirname(root_dir)
+      surefire_dir = os.path.join(parent_dir, "surefire-reports")
+      if not os.path.exists(surefire_dir):
+          continue
+          
+      # 检查 surefire-reports 下是否有 -output.txt 文件
+      has_output_file = any(file.endswith("-output.txt") for file in os.listdir(surefire_dir))
+      if not has_output_file:
+          continue
       for file in files:
         if file == "jacoco.xml":
+          # 如果 父文件夹下面的 surefire-reports 下面没有 -output.txt 文件，则跳过
           xml_path = os.path.join(root_dir, file)
           output_path = os.path.join(os.path.dirname(root_dir), "covered_log_statement.json")
           unit_test = root_dir.split('/')[-2]

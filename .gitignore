@@ -90,3 +90,13 @@ dmypy.json
 
 # large data
 data/
+
+*.json
+*.jsonl
+
+misc/
+
+test_misc.py
+
+*.txt
+*.bak
