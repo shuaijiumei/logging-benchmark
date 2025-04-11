@@ -59,15 +59,14 @@ def setup_logging(log_path: Optional[str] = None, log_level: int = logging.INFO)
     return logger
 
 
-def replace_func(position: str, function_lines: str, prediction: str, uuid: str, replace_data_path: str, docker_path: str, real_path: str, logger: logging.Logger) -> None:
+def replace_func(position: str, function_lines: str, prediction: str, uuid: str, replace_data_path: str, logger: logging.Logger) -> None:
     """
     替换函数实现 (使用临时文件和原子替换保证安全)
     """
     replace_record_data = {}
     replace_obj = {}
-    replace_location_str = position.replace(real_path, docker_path)
-    replace_location = Path(replace_location_str)
-    tmp_location = Path(f"{replace_location_str}.tmp")  # 定义临时文件路径
+    replace_location = Path(position)
+    tmp_location = Path(f"{position}.tmp")  # 定义临时文件路径
 
     try:
         # --- 1. 读取原始文件内容 ---
@@ -109,7 +108,7 @@ def replace_func(position: str, function_lines: str, prediction: str, uuid: str,
 
         # --- 4. 记录替换信息到 JSON (先于文件修改) ---
         replace_record_data = {
-            "file_path": replace_location_str,  # 存储字符串路径可能更通用
+            "file_path": position,  # 存储字符串路径可能更通用
             "replace_obj": replace_obj
         }
         replace_log_path = Path(replace_data_path) / \

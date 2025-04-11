@@ -76,7 +76,7 @@ def run_maven_test(test_name: str, mvn_dir: str, logger: logging.Logger, record_
 
 
 
-def execute_unittest(json_data: List[Dict], docker_path: str, real_path: str, replace_data_path: str, results_dir: str, logger: logging.Logger, use_catch_point: bool, record_error: bool, record_error_path: str) -> None:
+def execute_unittest(json_data: List[Dict], replace_data_path: str, results_dir: str, logger: logging.Logger, use_catch_point: bool, record_error: bool, record_error_path: str) -> None:
     """
     1. 替换代码，根据 covered_log_statement.json 中的 function_info 来替换源码，要对位置进行修正，并且对替换操作进行记录。
 
@@ -114,7 +114,7 @@ def execute_unittest(json_data: List[Dict], docker_path: str, real_path: str, re
 
             # 1. 替换代码
             replace_func(function_position, function_lines, prediction_data,
-                         uuid, replace_data_path, docker_path, real_path, logger)
+                         uuid, replace_data_path, logger)
 
             # 2. 运行单元测试 (示例，需要您完善日志收集逻辑)
             logger.info(f"Running test: {test_name}")
@@ -192,15 +192,11 @@ def main():
     # Add arguments
     parser.add_argument('--execute_id', type=str, default="tag_execute_2",
                         help='execute id')
-    parser.add_argument('--results_dir', type=str, default="/home/tby/hadoop/script_new/build_dataset/get_logs_output/results",help='Directory path for storing results (in docker)')
+    parser.add_argument('--results_dir', type=str, default="/home/al-bench/AL-Bench/build_dataset/get_logs_output/results",help='Directory path for storing results (in docker)')
 
     
-    parser.add_argument('--json_path', type=str, default="/home/tby/hadoop/script_new/build_dataset/find_covered_log_statement/code_data/covered_log_statement.json",
+    parser.add_argument('--json_path', type=str, default="/home/al-bench/AL-Bench/build_dataset/find_covered_log_statement/code_data/covered_log_statement.json",
                         help='Path to the JSON file (in docker)')
-    parser.add_argument('--docker_path', type=str, default="/home/tby/hadoop/",
-                        help='Path to Docker related files')
-    parser.add_argument('--real_path', type=str, default="/Users/tby/Downloads/hadoop_test_platform/",
-                        help='Path to the real code')
     parser.add_argument('--use_catch_point', action='store_true',
                         help='Skip already processed UUIDs based on results.jsonl')
     parser.add_argument('--record_error', action='store_true',
@@ -216,8 +212,6 @@ def main():
     record_error_path = os.path.join(results_dir, "build_error_log")
 
     json_path = args.json_path
-    docker_path = args.docker_path
-    real_path = args.real_path
     use_catch_point = args.use_catch_point
     record_error = args.record_error
 
@@ -238,8 +232,7 @@ def main():
     # 读取 json 文件
     json_data = read_json(json_path)
 
-    execute_unittest(json_data, docker_path, real_path,
-                     replace_data_path, results_dir, logger, use_catch_point, record_error, record_error_path)
+    execute_unittest(json_data, replace_data_path, results_dir, logger, use_catch_point, record_error, record_error_path)
 
 
 if __name__ == "__main__":
