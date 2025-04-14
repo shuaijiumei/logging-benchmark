@@ -253,7 +253,7 @@ def save_results(covered_functions: List[Dict[str, Any]], save_path: str) -> Non
 
 
 def extract_covered_logs(data_dir: str, source_code_dir: str, code_json: str, 
-                         save_dir: str, execute_id: str, logger: logging.Logger) -> None:
+                         save_dir: str, logger: logging.Logger) -> None:
     """提取被覆盖的日志语句的主要功能
     
     Args:
@@ -353,7 +353,6 @@ def main():
         source_code_dir=args.source_code_dir,
         code_json=args.code_json,
         save_dir=args.save_dir,
-        execute_id=args.execute_id,
         logger=logger
     )
 
