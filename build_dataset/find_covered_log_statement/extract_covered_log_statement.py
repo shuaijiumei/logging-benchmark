@@ -6,29 +6,29 @@ from typing import Dict, List, Any, Tuple, Optional
 from functools import reduce
 import argparse
 import uuid
-import re
 from tqdm import tqdm
-from tool import remove_java_comments, replace_log_statements
+from tool import remove_java_comments, replace_log_statements, setup_logging
+import logging
 
 def load_hadoop_data(file_path: str = "./data/hadoop-cleaned.json") -> List[Dict[str, Any]]:
     """加载 Hadoop 数据文件"""
     with open(file_path, "r") as f:
         return json.load(f)
 
-def parse_xml_file(file_path: str) -> ET.Element:
+def parse_xml_file(file_path: str, logger: logging.Logger) -> ET.Element:
     """解析 XML 文件并返回根元素"""
     try:
         tree = ET.parse(file_path)
         return tree.getroot()
     except Exception as e:
-        print(f"Error processing XML file: {e}")
+        logger.error(f"Error processing XML file: {e}")
         sys.exit(1)
 
 def is_log_line(line: str) -> bool:
     """判断一行代码是否是日志语句"""
     return line.strip().lower().startswith("log.")
 
-def extract_log_line(file_path: str, line_number: int) -> Optional[str]:
+def extract_log_line(file_path: str, line_number: int, logger: logging.Logger) -> Optional[str]:
     """从给定文件中提取指定行号的日志语句"""
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -37,10 +37,10 @@ def extract_log_line(file_path: str, line_number: int) -> Optional[str]:
                 content = lines[line_number - 1]
                 return content.strip() if is_log_line(content) else None
     except Exception as e:
-        print(f"Error reading file {file_path}: {e}")
+        logger.error(f"Error reading file {file_path}: {e}")
     return None
 
-def find_covered_logs(root: ET.Element, base_dir: str) -> List[Dict[str, Any]]:
+def find_covered_logs(root: ET.Element, base_dir: str, logger: logging.Logger) -> List[Dict[str, Any]]:
     """查找被覆盖的日志语句"""
     covered_logs = []
     
@@ -55,8 +55,7 @@ def find_covered_logs(root: ET.Element, base_dir: str) -> List[Dict[str, Any]]:
                 if int(line.get("ci")) > 0:  # 检查行是否被覆盖
                     line_number = int(line.get("nr"))
                     file_path = os.path.join(base_dir, full_file_name)
-                    
-                    log_line = extract_log_line(file_path, line_number)
+                    log_line = extract_log_line(file_path, line_number, logger)
                     if log_line:
                         covered_logs.append({
                             "lineNumber": line_number,
@@ -70,7 +69,7 @@ def is_line_in_function(log_entry: Dict[str, Any], function_data: Dict[str, Any]
     """判断日志行是否在函数范围内"""
     func_start, func_end = map(int, function_data["function_lines"].split("-"))
     position_match = log_entry["position"].find(
-        function_data["function_position"].replace("/Users/tby/Downloads/hadoop_test_platform/", "")
+        function_data["function_position"]
     ) != -1
     
     return (func_start <= log_entry["lineNumber"] <= func_end) and position_match
@@ -98,7 +97,7 @@ def match_logs_to_functions(covered_logs: List[Dict[str, Any]],
     # 过滤掉没有匹配到日志的函数
     return [func for func in result.values() if func["covered_log"]]
 
-def extract_complete_log_statements(item: Dict[str, Any]) -> Dict[str, Any]:
+def extract_complete_log_statements(item: Dict[str, Any], logger: logging.Logger) -> Dict[str, Any]:
     """
     从函数源代码中提取完整的日志语句
     
@@ -159,14 +158,14 @@ def extract_complete_log_statements(item: Dict[str, Any]) -> Dict[str, Any]:
                         item["covered_log"].append(log_detail)
                         break
     except Exception as e:
-        print(f"Error processing {item['function_position']}: {e}")
+        logger.error(f"Error processing {item['function_position']}: {e}")
     
     return item
 
-def process_covered_data(functions_with_covered_logs: List[Dict[str, Any]], docker_path, base_path, unit_test, execute_dir) -> List[Dict[str, Any]]:
+def process_covered_data(functions_with_covered_logs: List[Dict[str, Any]], logger: logging.Logger, unit_test, execute_dir) -> List[Dict[str, Any]]:
     
     # 处理函数中的完整日志语句
-    processed_result = [extract_complete_log_statements(item) for item in functions_with_covered_logs]
+    processed_result = [extract_complete_log_statements(item, logger) for item in functions_with_covered_logs]
     
     # 过滤出包含覆盖日志的函数
     filtered_data = [item for item in processed_result if item.get("covered_log")]
@@ -199,14 +198,11 @@ def process_covered_data(functions_with_covered_logs: List[Dict[str, Any]], dock
         if "function_content_without_covered_logs" in item:
             item["function_content_without_covered_logs"] = remove_java_comments(item["function_content_without_covered_logs"])
 
-        if docker_path:
-            item['function_position'] = item['function_position'].replace(base_path, docker_path)
-
         result_data.append({
             'function_info': source_code_info,
             'covered_log': item['covered_log'],
             'unit_test': unit_test,
-            'execute_dir': docker_path + execute_dir + '/',
+            'execute_dir': execute_dir + '/',
             'function_content_without_covered_logs': item['function_content_without_covered_logs'],
             'function_with_labeled_data': item['function_with_labeled_data'],
             'uuid': str(uuid.uuid4())
@@ -256,28 +252,25 @@ def save_results(covered_functions: List[Dict[str, Any]], save_path: str) -> Non
             json.dump(unique_covered_functions, f, indent=2)
 
 
-def main():
-    """主函数，组合所有步骤"""
-    # 从命令行获得 data_dir 参数 
-    parser = argparse.ArgumentParser(description='Extract covered log statements from xml file')
-    parser.add_argument('--data-dir', type=str, help='Directory containing the project data', default='./data/')
-    parser.add_argument('--source-code-dir', type=str, help='Path to the Source Code Directory', default="/Users/tby/Downloads/hadoop_test_platform")
-    parser.add_argument('--code-json', type=str, help='Path to the Json file containing log statement information', default="./code_data/hadoop-log-statement-data.json")
-    parser.add_argument('--source-code-docker', type=str, help='The project path in docker container', default="/home/tby/hadoop/")
-    parser.add_argument('--save-dir', type=str, help='The project path in docker container', default="./code_data/covered_log_statement.json")
-    args = parser.parse_args()
+def extract_covered_logs(data_dir: str, source_code_dir: str, code_json: str, 
+                         save_dir: str, execute_id: str, logger: logging.Logger) -> None:
+    """提取被覆盖的日志语句的主要功能
     
-    data_dir = args.data_dir
-    base_dir = args.source_code_dir
-    code_json = args.code_json
-    docker_project_path = args.source_code_docker
-    save_results_path = args.save_dir
-    # 检查路径是否存在，如果不存在则创建
+    Args:
+        data_dir: 包含项目数据的目录
+        source_code_dir: 源代码目录的路径
+        code_json: 包含日志语句信息的JSON文件路径
+        save_dir: 保存提取的覆盖日志语句的路径
+    """
+    # 检查路径是否存在
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
+        logger.info(f"Created data directory: {data_dir}")
 
     # 加载日志数据
+    logger.info(f"Loading Hadoop data from {code_json}")
     hadoop_data = load_hadoop_data(code_json)
+    logger.info(f"Loaded Hadoop data successfully")
     
     # 递归搜索所有 jacoco.xml 文件
     xml_files = []
@@ -285,7 +278,7 @@ def main():
       # 只处理包含 "jacoco" 的文件夹
       if "jacoco" not in root_dir:
           continue
-          
+
       # 检查是否存在兄弟文件夹 surefire-reports
       parent_dir = os.path.dirname(root_dir)
       surefire_dir = os.path.join(parent_dir, "surefire-reports")
@@ -298,37 +291,71 @@ def main():
           continue
       for file in files:
         if file == "jacoco.xml":
-          # 如果 父文件夹下面的 surefire-reports 下面没有 -output.txt 文件，则跳过
           xml_path = os.path.join(root_dir, file)
           output_path = os.path.join(os.path.dirname(root_dir), "covered_log_statement.json")
           unit_test = root_dir.split('/')[-2]
-          execute_dir = '/'.join(root_dir.split('/')[2:-2])
-          project_base_dir = base_dir + '/'.join(root_dir.split('/')[0:-2]).replace("./data", "") + '/src/main/java/'
+          execute_dir = source_code_dir + '/'.join(root_dir.replace(data_dir, "").split('/')[:-2])
+          project_base_dir = execute_dir + '/src/main/java/'
           xml_files.append((xml_path, output_path, project_base_dir, unit_test, execute_dir))
 
     # Initialize a list to collect all results
     all_results = []
     
-    for xml_path, _, project_base_dir, unit_test, execute_dir in tqdm(xml_files, desc="Processing XML files"):
+    logger.info(f"Found {len(xml_files)} XML files to process")
+    for index, (xml_path, _, project_base_dir, unit_test, execute_dir) in enumerate(xml_files):
       try:
         # 解析 XML 文件
-        root = parse_xml_file(xml_path)
+        logger.info(f"Processing file {index + 1}/{len(xml_files)}: {xml_path}")
+        root = parse_xml_file(xml_path, logger)
         
         # 执行主要处理逻辑
-        covered_logs = find_covered_logs(root, project_base_dir)
+        covered_logs = find_covered_logs(root, project_base_dir, logger)
+        # logger.info(f"Found {len(covered_logs)} covered logs")
+        
         covered_functions = match_logs_to_functions(covered_logs, hadoop_data)
-        result = process_covered_data(covered_functions, docker_project_path, base_dir, unit_test, execute_dir)
+        # logger.info(f"Matched logs to {len(covered_functions)} functions")
+        
+        result = process_covered_data(covered_functions, logger, unit_test, execute_dir)
         
         # Add results to the collected list
         if result:
           all_results.extend(result)
+        #   logger.info(f"Added {len(result)} results")
       except Exception as e:
-        print(f"Error processing {xml_path}: {e}")
+        logger.error(f"Error processing {xml_path}: {e}")
     
     # Save all results to a single output file
     if all_results:
-      save_results(all_results, save_results_path)
-      print(f"All results saved to {save_results_path}")
+      logger.info(f"Saving {len(all_results)} results to {save_dir}")
+      save_results(all_results, save_dir)
+      logger.info(f"All results saved to {save_dir}")
+    else:
+      logger.info("No results found to save")
+
+def main():
+    """命令行入口函数"""
+    # 从命令行获得 data_dir 参数 
+    parser = argparse.ArgumentParser(description='Extract covered log statements from xml file')
+    parser.add_argument('--data-dir', type=str, help='Directory containing the project data', default='/home/al-bench/AL-Bench/build_dataset/find_covered_log_statement/data')
+    parser.add_argument('--source-code-dir', type=str, help='Path to the Source Code Directory', default="/home/al-bench/hadoop-3.4.0-src")
+    parser.add_argument('--code-json', type=str, help='Path to the Json file containing log statement information', default="./code_data/hadoop-log-statement-data.json")
+    parser.add_argument('--save-dir', type=str, help='The project path in docker container', default="./code_data/covered_log_statement.json")
+    parser.add_argument('--log-dir', type=str, help='The log directory', default="./log")
+    parser.add_argument('--execute-id', type=str, help='The id of the execution', default="execute_hadoop_kms")
+    args = parser.parse_args()
+    logger = setup_logging(args.log_dir)
+
+    target_dir = args.data_dir + '/' + args.execute_id + '/target'
+    
+    # 调用主要功能函数
+    extract_covered_logs(
+        data_dir=target_dir,
+        source_code_dir=args.source_code_dir,
+        code_json=args.code_json,
+        save_dir=args.save_dir,
+        execute_id=args.execute_id,
+        logger=logger
+    )
 
 if __name__ == "__main__":
     main()

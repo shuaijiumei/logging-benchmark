@@ -143,9 +143,6 @@ def save_results(projects: List[Dict[str, Any]], output_path: str = None) -> str
     Returns:
         保存结果的文件路径
     """
-    if output_path is None:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        output_path = os.path.join(current_dir, "potential_dir.json")
 
     # 确保输出目录存在
     if not os.path.exists(os.path.dirname(output_path)):
@@ -161,7 +158,7 @@ def main():
     
     # 创建命令行参数解析器
     parser = argparse.ArgumentParser(description='查找和分析Java测试项目')
-    parser.add_argument('--base-dir', type=str, default="/Users/tby/Downloads/hadoop_test_platform/",
+    parser.add_argument('--base-dir', type=str, default="/home/al-bench/hadoop-3.4.0-src/",
                 help='要搜索的基础目录路径')
     parser.add_argument('--output-path', type=str, default='./data/potential_dir.json',
                 help='结果文件的保存路径')

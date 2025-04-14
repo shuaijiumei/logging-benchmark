@@ -8,7 +8,7 @@ def load_potential_dir(file_path: str) -> List[Dict[str, Any]]:
     with open(file_path, 'r') as f:
         return json.load(f)
 
-def inject_jacoco_plugin(pom_path: str, record_file: str = None) -> None:
+def inject_jacoco_plugin(pom_path: str) -> None:
     """向pom.xml注入Jacoco插件，并记录操作到文件中"""
     try:
         # 解析XML
@@ -90,7 +90,7 @@ def inject_jacoco_plugin(pom_path: str, record_file: str = None) -> None:
     except Exception as e:
         print(f"注入Jacoco插件失败: {e}")
 
-def delete_jacoco_plugin(pom_path: str, record_file: str = None) -> None:
+def delete_jacoco_plugin(pom_path: str) -> None:
     """从pom.xml删除Jacoco插件，并从记录文件中移除"""
     try:
         # 解析XML
@@ -128,9 +128,8 @@ def delete_jacoco_plugin(pom_path: str, record_file: str = None) -> None:
 def main():
     # 设置命令行参数
     parser = argparse.ArgumentParser(description='Inject or remove JaCoCo plugin in Maven projects')
-    parser.add_argument('--potential_dir', help='Path to potential directories JSON file', default='./data/test_dir.json')
-    parser.add_argument('--record_file', help='Path to operation record JSON file', default='./data/record.json')
-    parser.add_argument('--base_dir', help='Hadoop base directory', default='/Users/tby/Downloads/hadoop_test_platform/')
+    parser.add_argument('--potential_dir', help='Path to potential directories JSON file', default='./data/test_dir_hadoop_kms.json')
+    parser.add_argument('--base_dir', help='Hadoop base directory', default='/home/al-bench/hadoop-3.4.0-src/')
     parser.add_argument('--action', help='Add or remove Jacoco plugin', required=True, choices=['add', 'remove'], default='add')
     
 
@@ -138,7 +137,6 @@ def main():
     
     # 从命令行参数读取文件路径
     potential_dir_path = args.potential_dir
-    record_file = args.record_file
     base_dir = args.base_dir
     
     # 加载潜在的测试目录列表
@@ -152,10 +150,10 @@ def main():
         
         if args.action == 'add':
             # 注入Jacoco插件
-            inject_jacoco_plugin(pom_path, record_file)
+            inject_jacoco_plugin(pom_path)
         elif args.action == 'remove':
             # 删除Jacoco插件
-            delete_jacoco_plugin(pom_path, record_file)
+            delete_jacoco_plugin(pom_path)
 
 from datetime import datetime
 
