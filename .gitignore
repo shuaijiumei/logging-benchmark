@@ -102,3 +102,5 @@ test_misc.py
 *.bak
 
 archive_data/
+
+nohup.out

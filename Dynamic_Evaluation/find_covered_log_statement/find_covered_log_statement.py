@@ -57,8 +57,8 @@ def run_tests(project_dir: str, hadoop_root: str, test_list: List[str], logger: 
                         continue
             if index == 0:
                 # 先构建项目
-                cmd = f"mvn clean install -DskipTests -Djacoco.check.skip=true"
-                result = subprocess.run(cmd, shell=True, cwd=project_dir)
+                cmd = f"mvn clean install -DskipTests"
+                result = subprocess.run(cmd, shell=True, cwd=project_dir, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 if result.returncode != 0:
                     logger.error(f"Build project failed: {project_dir}")
                     # 写入 jsonl 记录
@@ -117,7 +117,7 @@ def run_tests(project_dir: str, hadoop_root: str, test_list: List[str], logger: 
             
             # Log command output
             logger.info(f"Test case {test_name} execution completed, time spent: {execution_time:.2f} seconds")
-            logger.info(f"Current project progress: {index + 1}/{len(test_list)}")
+            logger.info(f"Project {project_dir} progress: {index + 1}/{len(test_list)}")
 
             # 写入 jsonl 记录
             write_test_result(execution_result_save_dir, project_dir, test_name, execution_time, True, result_file_lock)
@@ -210,7 +210,7 @@ def main():
     """Main function"""
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Run project test cases and extract covered log statements')
-    parser.add_argument('--potential-dir', type=str, default='/home/al-bench/AL-Bench/Dynamic_Evaluation/initial_project/data/test_dir_hadoop_multi_thread.json',
+    parser.add_argument('--potential-dir', type=str, default='/home/al-bench/AL-Bench/Dynamic_Evaluation/initial_project/data/test.json',
                       help='Path to project list JSON file')
     parser.add_argument('--code-root', type=str, default='/home/al-bench/hadoop-3.4.0-src',
                       help='Hadoop project root directory in Docker')
@@ -220,7 +220,7 @@ def main():
     parser.add_argument('--code-json', type=str, default='/home/al-bench/AL-Bench/Dynamic_Evaluation/find_covered_log_statement/code_data/hadoop-log-statement-data.json',
                       help='Path to the Json file containing log statement information')
 
-    parser.add_argument('--execute_id', type=str, default='execute_hadoop_test_file_block',
+    parser.add_argument('--execute_id', type=str, default='test_multi_thread_1',
                       help='The id of the execution')
     parser.add_argument('--data-save-dir', type=str, default='/home/al-bench/AL-Bench/Dynamic_Evaluation/find_covered_log_statement/data/',
                     help='Data save directory, please use absolute path in Docker')

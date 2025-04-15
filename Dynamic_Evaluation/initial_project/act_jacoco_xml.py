@@ -9,9 +9,8 @@ def load_potential_dir(file_path: str) -> List[Dict[str, Any]]:
     with open(file_path, 'r') as f:
         return json.load(f)
 
-def record_injected_pom(pom_path: str) -> None:
+def record_injected_pom(pom_path: str, record_file: str) -> None:
     """记录已注入Jacoco的pom文件路径"""
-    record_file = "./data/jacoco_injected_poms.json"
     
     # 确保data目录存在
     os.makedirs(os.path.dirname(record_file), exist_ok=True)
@@ -35,9 +34,8 @@ def record_injected_pom(pom_path: str) -> None:
     
     print(f"已记录注入操作到 {record_file}")
 
-def load_injected_poms() -> List[str]:
+def load_injected_poms(record_file: str) -> List[str]:
     """加载已注入Jacoco的pom文件列表"""
-    record_file = "./data/jacoco_injected_poms.json"
     
     if not os.path.exists(record_file):
         return []
@@ -72,7 +70,7 @@ def remove_from_record(pom_path: str, record_file: str) -> None:
     
     print(f"已从 {record_file} 中移除记录")
 
-def inject_jacoco_plugin(pom_path: str) -> None:
+def inject_jacoco_plugin(pom_path: str, record_file: str) -> None:
     """向pom.xml注入Jacoco插件，并记录操作到文件中"""
     try:
         # 解析XML
@@ -151,7 +149,7 @@ def inject_jacoco_plugin(pom_path: str) -> None:
         tree.write(pom_path, encoding='utf-8', xml_declaration=True)
         
         # 记录已注入Jacoco的pom文件路径
-        record_injected_pom(pom_path)
+        record_injected_pom(pom_path, record_file)
         
         print(f"Jacoco插件已成功注入到 {pom_path}")
             
@@ -200,12 +198,11 @@ def delete_jacoco_plugin(pom_path: str, record_file: str) -> None:
 def main():
     # 设置命令行参数
     parser = argparse.ArgumentParser(description='Inject or remove JaCoCo plugin in Maven projects')
-    parser.add_argument('--potential_dir', help='Path to potential directories JSON file', default='./data/test_dir_hadoop_multi_thread.json')
+    parser.add_argument('--potential_dir', help='Path to potential directories JSON file', default='./data/potential_dir.json')
     parser.add_argument('--base_dir', help='Hadoop base directory', default='/home/al-bench/hadoop-3.4.0-src/')
     parser.add_argument('--action', help='Add or remove Jacoco plugin', required=True, choices=['add', 'remove'], default='add')
     parser.add_argument('--record_file', help='Path to record file', default='./data/jacoco_injected_poms.json')
     
-
     args = parser.parse_args()
     
     # 从命令行参数读取文件路径
@@ -224,10 +221,10 @@ def main():
             pom_path = f"{project_dir}/pom.xml"
             
             # 注入Jacoco插件
-            inject_jacoco_plugin(pom_path)
+            inject_jacoco_plugin(pom_path, record_file)
     elif args.action == 'remove':
         # 从记录文件中读取已注入的pom文件列表
-        injected_poms = load_injected_poms()
+        injected_poms = load_injected_poms(record_file)
         
         if not injected_poms:
             print("没有找到已注入Jacoco的pom文件记录")
