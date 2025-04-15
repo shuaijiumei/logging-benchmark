@@ -105,8 +105,9 @@ def run_tests(project_dir: str, hadoop_root: str, test_list: List[str], logger: 
             os.makedirs(f"{save_dir}/jacoco", exist_ok=True)
             os.makedirs(f"{save_dir}/surefire-reports", exist_ok=True)
 
-            # Copy the contents of jacoco and surefire-reports folders to data_save_dir
-            subprocess.run(f"cp -r {target_dir}/* {save_dir}/jacoco/", shell=True, stderr=subprocess.DEVNULL)
+            # Copy the contents of jacoco and surefire-reports folders to data_save_dir, to save space, only copy
+            # jacoco.xml for usage
+            subprocess.run(f"cp -r {target_dir}/jacoco.xml {save_dir}/jacoco/", shell=True, stderr=subprocess.DEVNULL)
             subprocess.run(f"cp -r {surefire_dir}/* {save_dir}/surefire-reports/", shell=True, stderr=subprocess.DEVNULL)
 
             # Delete jacoco and surefire-reports folders in target directory
@@ -220,7 +221,7 @@ def main():
     parser.add_argument('--code-json', type=str, default='/home/al-bench/AL-Bench/Dynamic_Evaluation/find_covered_log_statement/code_data/hadoop-log-statement-data.json',
                       help='Path to the Json file containing log statement information')
 
-    parser.add_argument('--execute_id', type=str, default='test_multi_thread_1',
+    parser.add_argument('--execute_id', type=str, default='hadoop_major_test',
                       help='The id of the execution')
     parser.add_argument('--data-save-dir', type=str, default='/home/al-bench/AL-Bench/Dynamic_Evaluation/find_covered_log_statement/data/',
                     help='Data save directory, please use absolute path in Docker')
