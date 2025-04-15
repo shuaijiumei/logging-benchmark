@@ -10,7 +10,6 @@
   1. 替换函数：对文件进行操作，将原本有的内容替换成 label 后的。 这个操作要记录下来，以免突然停止导致原本的代码被破坏
   2. 运行测试， mvn clean test -Dtest={test_name}
   3. 在日志中找到被标记的 log statement 打印的日志
-
 """
 
 import os
@@ -23,22 +22,28 @@ from tool import setup_logging, replace_func, reverse_func, read_jsonl, read_jso
 import argparse
 import shutil  # 需要导入 shutil 以便在 os.replace 不可用时回退 (虽然 os.replace 通常更好)
 import time
-
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 def load_catch_point(results_data: List[Dict], uuid: str) -> bool:
     for item in results_data:
         if item['uuid'] == uuid:
             return True
     return False
 
-def save_result(execute_success: bool, execute_time: float, file_size: float, results_dir: str, uuid: str) -> None:
+def save_result(execute_success: bool, execute_time: float, file_size: float, results_dir: str, uuid: str, write_lock: threading.Lock = None) -> None:
     result_item = {
         "uuid": uuid,
         "execute_success": execute_success,
         'execute_time': execute_time,
         'file_size': file_size
     }
+    if write_lock is not None:
+        write_lock.acquire()
     with open(os.path.join(results_dir, "results.jsonl"), 'a', encoding='utf-8') as f:
         f.write(json.dumps(result_item) + '\n')
+    if write_lock is not None:
+        write_lock.release()
+
 
 def run_maven_test(test_name: str, mvn_dir: str, logger: logging.Logger, record_error: bool, record_error_path: str, uuid: str) -> bool:
     try:
@@ -73,9 +78,7 @@ def run_maven_test(test_name: str, mvn_dir: str, logger: logging.Logger, record_
         logger.error(f"Unexpected error occurred while running test {test_name}: {str(e)}")
         return False
 
-
-
-def execute_unittest(json_data: List[Dict], replace_data_path: str, results_dir: str, logger: logging.Logger, use_catch_point: bool, record_error: bool, record_error_path: str) -> None:
+def execute_unittest(json_data: List[Dict], replace_data_path: str, results_dir: str, logger: logging.Logger, use_catch_point: bool, record_error: bool, record_error_path: str, write_lock: threading.Lock) -> None:
     """
     1. 替换代码，根据 covered_log_statement.json 中的 function_info 来替换源码，要对位置进行修正，并且对替换操作进行记录。
 
@@ -123,7 +126,7 @@ def execute_unittest(json_data: List[Dict], replace_data_path: str, results_dir:
 
             if not execute_success:
                 # 如果没有编译成功，则不进行后续处理，直接记录结果
-                save_result(execute_success, execute_time, 0, results_dir, uuid)
+                save_result(execute_success, execute_time, 0, results_dir, uuid, write_lock)
                 logger.error(f"Failed to run test: {test_name}")
                 continue
 
@@ -133,7 +136,7 @@ def execute_unittest(json_data: List[Dict], replace_data_path: str, results_dir:
             log_file_dir = execute_dir + "/target/surefire-reports"
             if not os.path.exists(log_file_dir):
                 logger.error(f"Log file directory not found: {log_file_dir}")
-                save_result(False, execute_time, 0, results_dir, uuid)
+                save_result(False, execute_time, 0, results_dir, uuid, write_lock)
                 continue
             # 获取所有以output.txt结尾的日志文件
             log_files = [f for f in os.listdir(log_file_dir) if f.endswith('output.txt')]
@@ -161,7 +164,7 @@ def execute_unittest(json_data: List[Dict], replace_data_path: str, results_dir:
                     f.write('\n'.join(super_tag_lines))
                 logger.info(f"Successfully saved [SUPER TAG] logs to {result_file_path}")
 
-                save_result(execute_success, execute_time, os.path.getsize(result_file_path), results_dir, uuid)
+                save_result(execute_success, execute_time, os.path.getsize(result_file_path), results_dir, uuid, write_lock)
             except Exception as e:
                 logger.error(f"Failed to save [SUPER TAG] logs for UUID {uuid}: {e}")
 
@@ -181,6 +184,47 @@ def execute_unittest(json_data: List[Dict], replace_data_path: str, results_dir:
     # 循环结束后，可以统一处理 results
     logger.info("--- Processing Complete ---")
 
+def classify_data(json_data: List[Dict]) -> List[Dict]:
+    """
+    对 json data 进行处理，以支持多线程
+    1. 对 json data 进行过滤，如果 function_with_labeled_data 为空，则过滤掉
+    2. 将 json data 按照 execute_dir 进行分类
+    2. 将每个 execute_dir 中的 json data 按照 unit_test 进行分类
+
+    return 一个字典，key 为 execute_dir，value 为 unit_test 的列表
+    """
+    classify_data = {}
+    for item in json_data:
+        if item['function_with_labeled_data'] is None:
+            continue
+        execute_dir = item['execute_dir']
+        if execute_dir not in classify_data:
+            classify_data[execute_dir] = []
+        classify_data[execute_dir].append(item)
+    return classify_data
+
+def execute_unittest_thread(json_data: List[Dict], replace_data_path: str, results_dir: str, logger: logging.Logger, use_catch_point: bool, record_error: bool, record_error_path: str, num_thread: int) -> None:
+    """
+    得到一个字典，key 为 execute_dir，value 为 unit_test 的列表，不同的 execute_dir 之间可以多线程
+    """
+    classify_data = classify_data(json_data)
+    if num_thread == 1:
+        for _, data_item_list in classify_data.items():
+            execute_unittest(data_item_list, replace_data_path, results_dir, logger, use_catch_point, record_error, record_error_path)
+    else:
+        write_lock = threading.Lock()
+        with ThreadPoolExecutor(max_workers=num_thread) as executor:
+            futures = {
+                executor.submit(execute_unittest, data_item_list, replace_data_path, results_dir, logger, use_catch_point, record_error, record_error_path, write_lock): data_item_list
+                for data_item_list in classify_data.values()
+            }
+            for future in as_completed(futures):
+                data_item_list = futures[future]
+                try:
+                    future.result()
+                    logger.info(f"Project {project['project_dir']} completed successfully")
+                except Exception as e:
+                    logger.error(f"Error processing project {project['project_dir']}: {e}")
 
 def main():
 
@@ -191,15 +235,18 @@ def main():
     # Add arguments
     parser.add_argument('--execute_id', type=str, default="tag_execute_2",
                         help='execute id')
-    parser.add_argument('--results_dir', type=str, default="/home/al-bench/AL-Bench/build_dataset/get_logs_output/results",help='Directory path for storing results (in docker)')
+    parser.add_argument('--results_dir', type=str, default="/home/al-bench/AL-Bench/get_logs_output/results",help='Directory path for storing results (in docker)')
 
     
-    parser.add_argument('--json_path', type=str, default="/home/al-bench/AL-Bench/build_dataset/find_covered_log_statement/code_data/covered_log_statement.json",
+    parser.add_argument('--json_path', type=str, default="/home/al-bench/AL-Bench/find_covered_log_statement/code_data/covered_log_statement.json",
                         help='Path to the JSON file (in docker)')
     parser.add_argument('--use_catch_point', action='store_true',
                         help='Skip already processed UUIDs based on results.jsonl')
     parser.add_argument('--record_error', action='store_true',
                         help='Record error')
+    parser.add_argument('--num_thread', type=int, default=1,
+                        help='Number of threads')
+
     # Parse arguments
     args = parser.parse_args()
 
@@ -231,6 +278,8 @@ def main():
     # 读取 json 文件
     json_data = read_json(json_path)
 
+    # 对 json data 进行处理，以支持多线程
+    json_data = classify_data(json_data)
     execute_unittest(json_data, replace_data_path, results_dir, logger, use_catch_point, record_error, record_error_path)
 
 

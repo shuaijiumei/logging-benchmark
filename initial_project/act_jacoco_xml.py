@@ -48,9 +48,8 @@ def load_injected_poms() -> List[str]:
     except json.JSONDecodeError:
         return []
     
-def remove_from_record(pom_path: str) -> None:
+def remove_from_record(pom_path: str, record_file: str) -> None:
     """从记录中移除已删除Jacoco的pom文件路径"""
-    record_file = "./data/jacoco_injected_poms.json"
     
     if not os.path.exists(record_file):
         return
@@ -159,7 +158,7 @@ def inject_jacoco_plugin(pom_path: str) -> None:
     except Exception as e:
         print(f"注入Jacoco插件失败: {e}")
 
-def delete_jacoco_plugin(pom_path: str) -> None:
+def delete_jacoco_plugin(pom_path: str, record_file: str) -> None:
     """从pom.xml删除Jacoco插件，并从记录文件中移除"""
     try:
         # 解析XML
@@ -189,7 +188,7 @@ def delete_jacoco_plugin(pom_path: str) -> None:
             tree.write(pom_path, encoding='utf-8', xml_declaration=True)
             
             # 从记录中移除
-            remove_from_record(pom_path)
+            remove_from_record(pom_path, record_file)
             
             print(f"Jacoco插件已从 {pom_path} 中删除")
         else:
@@ -204,6 +203,7 @@ def main():
     parser.add_argument('--potential_dir', help='Path to potential directories JSON file', default='./data/test_dir_hadoop_multi_thread.json')
     parser.add_argument('--base_dir', help='Hadoop base directory', default='/home/al-bench/hadoop-3.4.0-src/')
     parser.add_argument('--action', help='Add or remove Jacoco plugin', required=True, choices=['add', 'remove'], default='add')
+    parser.add_argument('--record_file', help='Path to record file', default='./data/jacoco_injected_poms.json')
     
 
     args = parser.parse_args()
@@ -211,6 +211,7 @@ def main():
     # 从命令行参数读取文件路径
     potential_dir_path = args.potential_dir
     base_dir = args.base_dir
+    record_file = args.record_file
     
     if args.action == 'add':
         # 加载潜在的测试目录列表
@@ -235,10 +236,10 @@ def main():
         # 删除每个pom文件中的Jacoco插件
         for pom_path in injected_poms:
             if os.path.exists(pom_path):
-                delete_jacoco_plugin(pom_path)
+                delete_jacoco_plugin(pom_path, record_file)
             else:
                 print(f"警告: 文件 {pom_path} 不存在，从记录中移除")
-                remove_from_record(pom_path)
+                remove_from_record(pom_path, record_file)
 
 
 if __name__ == "__main__":
