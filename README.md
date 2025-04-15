@@ -76,22 +76,50 @@ cd Static_Evaluation
 2. Run evaluation script:
 ```bash
 python eval/[tool_name]/run_eval.py
-```？
+```
 
 ### Dynamic Evaluation
+Strongly recommend using Docker to run the dynamic evaluation.
 
-1. Prepare environment:
+1. Pull the Docker image:
+```bash
+docker pull boyintan/al-bench:hadoop-build
+```
+
+2. Run the Docker container:
+```bash
+docker run -it -v $(pwd):/home/al-bench boyintan/al-bench:hadoop-build /bin/bash
+```
+
+3. Run the evaluation script:
 ```bash
 cd Dynamic_Evaluation
-# Follow instructions in init_dynamic_evaluation to build Docker environment
 ```
 
-2. Run demo evaluation:
+4. Run the evaluation script:
 ```bash
-# Modify path configuration in dynamic_evaluation.js
-# Run evaluation script
-./start-test.sh
+python Dynamic_Evaluation/get_logs_output/execute_unittest.py --execute_id [execute_id] --results_dir [results_dir] --json_path [json_path] --use_catch_point [use_catch_point] --record_error [record_error] --num_thread [num_thread]
 ```
+
+Prepare the data for dynamic evaluation, the data should be in the following format:
+```json
+[{
+    "uuid": "uuid",
+    "prediction": "prediction",
+    "predicted_log_statement": {
+        "log_statement": "log_statement",
+        "log_position": "log_position"
+    }
+}]
+```
+`
+"prediction" should be the standard code format with '/n' as the line break.
+"predicted_log_statement" should be the log statement in the code.
+"log_position" should be the line number of the log statement in the code.
+`
+
+
+
 
 ## Dataset
 
