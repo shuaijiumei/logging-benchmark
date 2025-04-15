@@ -336,7 +336,7 @@ def main():
     """命令行入口函数"""
     # 从命令行获得 data_dir 参数 
     parser = argparse.ArgumentParser(description='Extract covered log statements from xml file')
-    parser.add_argument('--data-dir', type=str, help='Directory containing the project data', default='/home/al-bench/AL-Bench/find_covered_log_statement/data')
+    parser.add_argument('--data-dir', type=str, help='Directory containing the project data', default='/home/al-bench/AL-Bench/Dynamic_Evaluation/find_covered_log_statement/data')
     parser.add_argument('--source-code-dir', type=str, help='Path to the Source Code Directory', default="/home/al-bench/hadoop-3.4.0-src")
     parser.add_argument('--code-json', type=str, help='Path to the Json file containing log statement information', default="./code_data/hadoop-log-statement-data.json")
     parser.add_argument('--save-dir', type=str, help='The project path in docker container', default="./code_data/covered_log_statement.json")

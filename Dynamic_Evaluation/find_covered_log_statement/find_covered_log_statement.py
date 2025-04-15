@@ -162,6 +162,7 @@ def process_projects(projects: List[Dict[str, Any]], hadoop_root: str, logger: l
         for index, project in enumerate(projects):
             logger.info(f"Current progress: {index + 1}/{len(projects)}")
             process_single_project(project, hadoop_root, logger, data_save_dir, result_save_dir, use_cache, None)
+            logger.info(f"Project {project['project_dir']} completed successfully")
             logger.info(f"==========Current progress: {index + 1}/{len(projects)}==========")
     else:
         
@@ -209,19 +210,19 @@ def main():
     """Main function"""
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Run project test cases and extract covered log statements')
-    parser.add_argument('--potential-dir', type=str, default='/home/al-bench/AL-Bench/initial_project/data/test_dir_hadoop_multi_thread.json',
+    parser.add_argument('--potential-dir', type=str, default='/home/al-bench/AL-Bench/Dynamic_Evaluation/initial_project/data/test_dir_hadoop_multi_thread.json',
                       help='Path to project list JSON file')
     parser.add_argument('--code-root', type=str, default='/home/al-bench/hadoop-3.4.0-src',
                       help='Hadoop project root directory in Docker')
     parser.add_argument('--num-thread', type=int, default=4,
                       help='Multi-thread execution')
     # 添加extract_covered_log_statement.py需要的参数
-    parser.add_argument('--code-json', type=str, default='/home/al-bench/AL-Bench/find_covered_log_statement/code_data/hadoop-log-statement-data.json',
+    parser.add_argument('--code-json', type=str, default='/home/al-bench/AL-Bench/Dynamic_Evaluation/find_covered_log_statement/code_data/hadoop-log-statement-data.json',
                       help='Path to the Json file containing log statement information')
 
     parser.add_argument('--execute_id', type=str, default='execute_hadoop_test_file_block',
                       help='The id of the execution')
-    parser.add_argument('--data-save-dir', type=str, default='/home/al-bench/AL-Bench/find_covered_log_statement/data/',
+    parser.add_argument('--data-save-dir', type=str, default='/home/al-bench/AL-Bench/Dynamic_Evaluation/find_covered_log_statement/data/',
                     help='Data save directory, please use absolute path in Docker')
     parser.add_argument('--use-cache', choices=['yes', 'no'], required=True,
                       help='Start from cache')

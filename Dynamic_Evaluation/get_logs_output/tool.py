@@ -280,11 +280,12 @@ def reverse_func(uuid: str, replace_data_path: str, logger: logging.Logger) -> N
         # --- 7. 原子性重命名日志文件为 .bak ---
         try:
             os.replace(json_log_path, bak_log_path)
+            uuid = str(json_log_path).split('/')[-1].split('.')[0]
             logger.info(
-                f"Renamed reverse log {json_log_path} to {bak_log_path}")
+                f"Renamed reverse log {uuid}.json to {uuid}.bak")
         except OSError as e:
             logger.error(
-                f"Error renaming reverse log file {json_log_path} to {bak_log_path}: {e}")
+                f"Error renaming reverse log file {uuid}.json to {uuid}.bak: {e}")
             # 文件内容已恢复，但日志重命名失败。这是一个可接受的结束状态，但日志会提示问题。
 
     except Exception as e:
@@ -300,3 +301,30 @@ def reverse_func(uuid: str, replace_data_path: str, logger: logging.Logger) -> N
             except OSError as unlink_err:
                 logger.warning(
                     f"Could not remove temporary file {restore_tmp_path} after unexpected error: {unlink_err}")
+
+def reverse_manual(replace_data_path: str) -> None:
+    """
+    手动恢复函数实现，针对手动停止的执行，导致没有完成文件的恢复。 所以自动找寻 json 文件，并且执行恢复。
+    """
+    # 模拟一个 logger，输出到控制台
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    # 读取 replace_data_path 目录下的所有的 json 文件，提取 uuid
+    json_files = Path(replace_data_path).glob('*.json')
+    for json_file in json_files:
+        uuid = str(json_file).split('/')[-1].split('.')[0]
+        reverse_func(uuid, replace_data_path, logger)
+
+if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--replace_data_path", type=str, required=True, help="The path contains the unreversed json files")
+    args = parser.parse_args()
+    manual_reverse_path = args.replace_data_path
+    reverse_manual(manual_reverse_path)
+    

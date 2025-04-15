@@ -76,7 +76,7 @@ cd Static_Evaluation
 2. Run evaluation script:
 ```bash
 python eval/[tool_name]/run_eval.py
-```
+```？
 
 ### Dynamic Evaluation
 
