@@ -60,12 +60,6 @@ Dynamic evaluation assesses the performance of logging tools in actual runtime e
 
 ## Quick Start
 
-### Requirements
-- Java Development Kit (JDK)
-- Maven
-- Node.js
-- Docker (for dynamic evaluation)
-
 ### Static Evaluation
 
 1. Enter the Static_Evaluation directory:
@@ -79,7 +73,7 @@ python eval/[tool_name]/run_eval.py
 ```
 
 ### Dynamic Evaluation
-Strongly recommend using Docker to run the dynamic evaluation.
+> **Strongly recommend using Docker to run the dynamic evaluation.**
 
 1. Pull the Docker image:
 ```bash
@@ -101,6 +95,8 @@ cd Dynamic_Evaluation
 python Dynamic_Evaluation/get_logs_output/execute_unittest.py --execute_id [execute_id] --results_dir [results_dir] --json_path [json_path] --use_catch_point [use_catch_point] --record_error [record_error] --num_thread [num_thread]
 ```
 
+**Note:**
+
 Prepare the data for dynamic evaluation, the data should be in the following format:
 ```json
 [{
@@ -112,11 +108,10 @@ Prepare the data for dynamic evaluation, the data should be in the following for
     }
 }]
 ```
-`
-"prediction" should be the standard code format with '/n' as the line break.
-"predicted_log_statement" should be the log statement in the code.
-"log_position" should be the line number of the log statement in the code.
-`
+
+> "prediction" should be the standard code format with '/n' as the line break.
+> "predicted_log_statement" should be the log statement in the code.
+> "log_position" should be the line number of the log statement in the code.
 
 
 
