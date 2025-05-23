@@ -51,7 +51,7 @@ def remove_java_comments(code: str) -> str:
         code = code[1:]
     return code
 
-def replace_log_statements(source_code: str, covered_logs: list, replace_target: str = "empty") -> str:
+def replace_log_statements(source_code: str, covered_logs: list, replace_target: str = "empty", all_logs: list = []) -> str:
     """
     从源代码中移除或标记指定的日志语句
     
@@ -86,3 +86,30 @@ def replace_log_statements(source_code: str, covered_logs: list, replace_target:
 def label_data(log_state: str) -> str:
     """标记数据"""
     return log_state.split('(')[0] + '(\"[SUPER TAG]\" + ' + '('.join(log_state.split('(')[1:])
+
+def judge_bad_pattern_functions(log_list: List[Dict[str, Any]]) -> bool:
+    """判断 bad pattern 的函数"""
+    # 1. 存在重复的日志语句，该 item 被视为 bad pattern
+    # 2. 存在日志语句中存在重复的变量，该 item 被视为 bad pattern
+    # 3. 存在日志语句中有连续重复特殊字符，该 item 被视为 bad pattern
+
+    # 1. 存在重复的日志语句，该 item 被视为 bad pattern
+    log_list_content = [log["statement"] for log in log_list]
+    if len(log_list_content) != len(set(log_list_content)):
+        return True
+    
+    # 2. 存在日志语句中存在重复的变量，该 item 被视为 bad pattern
+    for log in log_list:
+        if len(log['vars']) != len(set(log['vars'])):
+            return True
+        
+    # 3. 存在日志语句中有连续重复特殊字符，该 item 被视为 bad pattern
+    for log in log_list_content:
+        if re.search(r'([^a-zA-Z0-9\s])\1\1+', log):
+            return True
+    # 如果存在日志语句为空，则该 item 被视为 bad pattern
+    for log in log_list_content:
+        if log.strip() == "":
+            return True
+    
+    return False

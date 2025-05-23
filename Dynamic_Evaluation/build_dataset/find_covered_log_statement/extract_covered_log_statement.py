@@ -7,7 +7,7 @@ from functools import reduce
 import argparse
 import uuid
 from tqdm import tqdm
-from tool import remove_java_comments, replace_log_statements, setup_logging
+from tool import remove_java_comments, replace_log_statements, setup_logging, judge_bad_pattern_functions
 import logging
 
 def load_hadoop_data(file_path: str = "./data/hadoop-cleaned.json") -> List[Dict[str, Any]]:
@@ -37,7 +37,7 @@ def extract_log_line(file_path: str, line_number: int, logger: logging.Logger) -
                 content = lines[line_number - 1]
                 return content.strip() if is_log_line(content) else None
     except Exception as e:
-        logger.error(f"Error reading file {file_path}: {e}")
+        logger.debug(f"Error reading file {file_path}: {e}")
     return None
 
 def find_covered_logs(root: ET.Element, base_dir: str, logger: logging.Logger) -> List[Dict[str, Any]]:
@@ -186,12 +186,12 @@ def process_covered_data(functions_with_covered_logs: List[Dict[str, Any]], logg
 
         # 使用这个函数替换原来的代码
         item["function_content_without_covered_logs"] = replace_log_statements(
-            item["function_content"], item.get("covered_log", [], ), replace_target="empty"
+            item["function_content"], item.get("covered_log", []), replace_target="empty", all_logs=item.get("log_detailsList", [])
         )
 
         # 新建一个 function_with_labeled_data
         item["function_with_labeled_data"] = replace_log_statements(
-            item["function_content"], item.get("covered_log", []), replace_target='label'
+            item["function_content"], item.get("covered_log", []), replace_target='label', all_logs=item.get("log_detailsList", [])
         )
 
         # 去掉 Java 代码中的所有注释
@@ -250,6 +250,14 @@ def save_results(covered_functions: List[Dict[str, Any]], save_path: str) -> Non
     if unique_covered_functions:
         with open(save_path, "w") as f:
             json.dump(unique_covered_functions, f, indent=2)
+
+def clean_bad_pattern_functions(functions: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """清理 bad pattern 的函数"""
+    cleaned_functions = []
+    for function in functions:
+        if not judge_bad_pattern_functions(function['function_info']['log_detailsList']):
+            cleaned_functions.append(function)
+    return cleaned_functions
 
 
 def extract_covered_logs(data_dir: str, source_code_dir: str, code_json: str, 
@@ -316,6 +324,9 @@ def extract_covered_logs(data_dir: str, source_code_dir: str, code_json: str,
         # logger.info(f"Matched logs to {len(covered_functions)} functions")
         
         result = process_covered_data(covered_functions, logger, unit_test, execute_dir)
+
+        # 清理 bad pattern 的函数
+        result = clean_bad_pattern_functions(result)
         
         # Add results to the collected list
         if result:
@@ -341,7 +352,7 @@ def main():
     parser.add_argument('--code-json', type=str, help='Path to the Json file containing log statement information', default="./code_data/hadoop-log-statement-data.json")
     parser.add_argument('--save-dir', type=str, help='The project path in docker container', default="./code_data/covered_log_statement.json")
     parser.add_argument('--log-dir', type=str, help='The log directory', default="./log")
-    parser.add_argument('--execute-id', type=str, help='The id of the execution', default="execute_hadoop_kms")
+    parser.add_argument('--execute-id', type=str, help='The id of the execution', default="hadoop_major_test")
     args = parser.parse_args()
     logger = setup_logging(args.log_dir)
 

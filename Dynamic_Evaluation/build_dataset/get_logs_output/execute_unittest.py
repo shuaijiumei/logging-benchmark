@@ -245,17 +245,16 @@ def main():
         description='Execute unit tests and collect logs')
 
     # Add arguments
-    parser.add_argument('--execute_id', type=str, default="tag_execute_2_multi_thread",
+    parser.add_argument('--execute_id', type=str, default="hadoop_major_test_2",
                         help='execute id')
-    parser.add_argument('--results_dir', type=str, default="/home/al-bench/AL-Bench/Dynamic_Evaluation/get_logs_output/results",help='Directory path for storing results (in docker)')
+    parser.add_argument('--results_dir', type=str, default="/home/al-bench/AL-Bench/Dynamic_Evaluation/build_dataset/get_logs_output/results",help='Directory path for storing results (in docker)')
 
-    
-    parser.add_argument('--json_path', type=str, default="/home/al-bench/AL-Bench/Dynamic_Evaluation/find_covered_log_statement/data/execute_hadoop_test_file_block/result/covered_log_statement.json",help='Path to the JSON file (in docker)')
+    parser.add_argument('--json_path', type=str, default="/home/al-bench/AL-Bench/Dynamic_Evaluation/build_dataset/find_covered_log_statement/data/hadoop_major_test/result/covered_log_statement.json",help='Path to the JSON file (in docker)')
     parser.add_argument('--use_catch_point', action='store_true',
                         help='Skip already processed UUIDs based on results.jsonl')
     parser.add_argument('--record_error', action='store_true',
                         help='Record error')
-    parser.add_argument('--num_thread', type=int, default=2,
+    parser.add_argument('--num_thread', type=int, default=4,
                         help='Number of threads')
 
     # Parse arguments
