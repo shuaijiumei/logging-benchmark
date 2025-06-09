@@ -6,15 +6,18 @@ import json
 from tqdm import tqdm
 from sacrebleu import sentence_bleu
 from rouge_score import rouge_scorer
-
+import os
 
 def read_json(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         return json.load(f)
+    
+def read_jsonl(file_path):
+    with open(file_path, 'r', encoding='utf-8') as f:
+        return [json.loads(line) for line in f]
 
 def get_true_prediction_file(item):
-    return read_txt(item['uuidMap']['projects'][0]['unitTest'][0]['predictOutput'].replace('/home/tby/hadoop/', '/Users/tby/Downloads/hadoop_test_platform/'))
-
+    return read_txt(item['file_location'])
 
 def calculate_rouge_score(reference, candidate):
     scorer = rouge_scorer.RougeScorer(
@@ -79,13 +82,34 @@ def r(x):
     return round(x * 100, 4)
 
 
-def main():
-    evaluate_model_name = 'unilog_deepseek'
-    dynamic_test_platform = 'hadoop'
+def get_common_case(compare_data, baseline_data):
+    common_case = []
+    
+    for item in compare_data:
+        if item['execute_success']:
+            baseline_item = next((b for b in baseline_data if b['uuid'] == item['uuid']), None)
+            if baseline_item:
+                baseline_item_size = baseline_item['file_size']
+                item_size = item['file_size']
+                
+                if baseline_item_size != 0 and item_size != 0:
+                    common_case.append({
+                        'uuid': item['uuid'],
+                        'baseline_size': baseline_item_size,
+                        'compare_size': item_size
+                    })
+                if baseline_item_size == 0 and item_size == 0:
+                    common_case.append({
+                        'uuid': item['uuid'],
+                        'baseline_size': baseline_item_size,
+                        'compare_size': item_size
+                    })
+    
+    return common_case
 
-    baseline_data = read_json(f'../../{dynamic_test_platform}/baseline.json')
-    prediction_data = read_json(f'../../{dynamic_test_platform}/{evaluate_model_name}.json')
-    prediction_common_data = read_json(f'../data/{evaluate_model_name}/common.json')
+def evaluate_model_results(evaluate_model_name, baseline_data):
+    prediction_data = read_jsonl(f'./data/res/{evaluate_model_name}.jsonl')
+    common_case = get_common_case(prediction_data, baseline_data)
 
     perfect_list = []
     common_evaluate_list = []
@@ -97,7 +121,7 @@ def main():
         'total_bleu4_score': 0
     }
 
-    for d in tqdm.tqdm(prediction_common_data):
+    for d in tqdm(common_case):
         if d['baseline_size'] == d['compare_size'] == 0:
             perfect_list.append(d)
             continue
@@ -124,12 +148,23 @@ def main():
         d['success'] = True
         common_evaluate_list.append(d)
 
-    # save evaluation results for get_metrics.py
-    with open(f'../data/{evaluate_model_name}/common_evaluation.json', 'w', encoding='utf-8') as f:
+    # 保存评估结果到 data/eval_res/evaluate_model_name.jsonl
+    if not os.path.exists('./data/eval_res'):
+        os.makedirs('./data/eval_res')
+    if not os.path.exists(f'./data/eval_res/{evaluate_model_name}'):
+        os.makedirs(f'./data/eval_res/{evaluate_model_name}')
+    with open(f'./data/eval_res/{evaluate_model_name}/eval_res.json', 'w', encoding='utf-8') as f:
         json.dump(common_evaluate_list, f, ensure_ascii=False, indent=2)
-    with open(f'../data/{evaluate_model_name}/perfect_list.json', 'w', encoding='utf-8') as f:
+    with open(f'./data/eval_res/{evaluate_model_name}/perfect_list.json', 'w', encoding='utf-8') as f:
         json.dump(perfect_list, f, ensure_ascii=False, indent=2)
 
+def main():
+    # choose the evaluate model name unilog, unilog_deepseek, fastlog, leonid, leonid_m, lance
+    evaluate_model_name_list = ['unilog', 'unilog_deepseek', 'fastlog', 'leonid', 'leonid_m', 'lance']
+    baseline_data = read_jsonl(f'./data/res/baseline.jsonl')
+
+    for evaluate_model_name in evaluate_model_name_list:
+        evaluate_model_results(evaluate_model_name, baseline_data)
 
 if __name__ == '__main__':
     main()

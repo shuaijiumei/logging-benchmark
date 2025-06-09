@@ -16,9 +16,9 @@ This directory contains scripts for building datasets used in dynamic evaluation
 
 This directory contains scripts and tools for executing the evaluation process:
 
-- Download the dataset from [here](https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps) and put it in the `eval/res` directory.
+- Download the res and output from [here](https://drive.google.com/drive/u/1/folders/1eoK7SaYTuwqcAe9T3ddjeU5oGLRDX2Ps) and put it in the `eval/data` directory. You should unzip the `dynamic_evaluation_generated_logs.zip` in the `eval/data/output` directory. Put the `dynamic_evaluation_result.zip` in the `eval/res` directory.
 
-- Run the `eval_res.py` script to evaluate the results.
+- Run the `eval_res.py` script to evaluate the results. This step will generate the evaluation results in the `eval/data/eval_res` directory.
 
 - Run the `get_metrics.py` script to get the evaluation metrics. The result will be saved in the `eval/evaluation_results.md` file.
 

@@ -21,10 +21,10 @@ def r(x):
     return round(x * 100 * 10000) / 10000
 
 def evaluateModel(model_name):
-    with open(f"./data/{model_name}/common_evaluation.json", "r", encoding="utf-8") as f:
+    with open(f"./data/eval_res/{model_name}/eval_res.json", "r", encoding="utf-8") as f:
         evaluation_res = json.load(f)
     
-    with open(f"./data/{model_name}/perfect_list.json", "r", encoding="utf-8") as f:
+    with open(f"./data/eval_res/{model_name}/perfect_list.json", "r", encoding="utf-8") as f:
         perfect_list = json.load(f)
     
     valid_length = 2238
